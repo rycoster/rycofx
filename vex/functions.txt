@@ -1,0 +1,12 @@
+// SET FLOATS TO VECTORS
+#define v(x) vector(x)
+#define v(x) set(x,x,x)
+
+// ALLOWS EXP INSIDE THE FIT
+#define fitexp(v,a0,b0,a1,b1,p)  fit01(pow(fit(v,a0,b0,0,1),p),a1,b1) ; // allows exponential remap inside of a fit
+
+// FIT A 0 1 VECTOR TO A -1 1 VECTOR
+#define fitv11(v) fit01(v,vector(-1),vector(1))
+
+// QUANTIZE
+#define quantize(a,b) floor(a/b)*b

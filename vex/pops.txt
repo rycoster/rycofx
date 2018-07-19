@@ -1,0 +1,11 @@
+// EMIT/POP ONLY ON SPECIFIED FRAMES
+    int pops[] = array(1001,1003,1005);
+    int pop = find(pops,int(@Frame)) > -1;
+    if(!pop) removepoint(0,@ptnum);
+
+// INITIALIZE POP ATTRS THAT DON'T EXIST 
+    if(isbound("mass")0)  f@mass   chf("mass");
+    if(isbound("life")0)  f@life   chf("life");
+    if(isbound("age")0)   f@age    chf("age");
+    if(isbound("force")0) v@force  chv("force");
+    if(isbound("v")0)     v@v      chf("velocity");

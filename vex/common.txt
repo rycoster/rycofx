@@ -1,0 +1,36 @@
+// PRIMUV STUFF
+    int primid; float dist; vector primuv; vector primP;
+    dist = xyzdist(1,@P,primid,primuv);
+    primP = primuv(1,"P",primid,primuv);
+
+// KEEP ONLY PRIMITIVES THAT HAVE THE MATCHING GEO ON SECOND INPUT (Prim Wrangle)
+    string attr = "path";
+    string attrvalue = prim(0,attr,@primnum);
+    int count = findattribvalcount(1,"primitive",attr,attrvalue);
+    if(count == 0) removeprim(0,@primnum,1);    
+
+// CREATE A GROUP OF "BIG" PACKED PRIMITIVES BY MEASURING THEIR INTRINSIC BOUNDS
+    float a[] = primintrinsic(0,"packedbounds",@ptnum);
+    float size = distance(set(a[0],a[1],a[2]),set(a[3],a[4],a[5]));
+    if(size > ch("threshold") ) i@group_big = 1;
+
+// AUTO PSCALE BASED ON DISTANCE
+    int pt1, pt2;
+    vector pt1P, pt2P;
+    float avgdist = 0, singledist = 0;
+    float bias = chf("Average");
+    @pscale = 0;
+    pt2 = nearpoints(0,@P,1000000,2)[1];
+    pt2P = point(0,"P",pt2);
+    singledist = distance(@P,pt2P);    
+    if(bias>0){
+        for(int i = 0 ; i < npoints(0) ; i++) {
+            pt1 = 0;
+            pt1P = point(0,"P",pt1);
+            pt2 = nearpoints(0,pt1P,1000000,2)[1];
+            pt2P = point(0,"P",pt2);
+            avgdist += distance(pt1P,pt2P) / npoints(0);    
+        };
+    };
+    @pscale = lerp(singledist,avgdist,bias);
+    @pscale *= ch("mult");

@@ -1,0 +1,76 @@
+// DECLARING VARIABLES AND CREATING ATTRIBUTES
+    matrix2     2@
+    matrix3     3@
+    matrix      4@     // matrix defaults to matrix4
+
+// EXAMPLE MATRIX
+    4@m = instance(@P, @N, scale, rotate, @up);
+
+// MIX BETWEEN TWO MATRICES
+    matrix3 m, m1, m2;
+    float mix;
+    m1 = primintrinsic(0,"transform",@primnum);
+    m2 = primintrinsic(1,"transform",@primnum);
+    mix = ch("mix");
+    m = m1 * mix + m2 * (1-mix) ;
+    setprimintrinsic(0,"transform",@primnum,m,"set");
+    
+        
+// CRACK TRANSFORMS    
+    matrix3 m = primintrinsic(0,"transform",@primnum);
+    vector pivot = vector(0);
+    vector translate = cracktransform(0,0,0,pivot,m);
+    vector rotate = cracktransform(0,0,1,pivot,m);
+    vector scale = cracktransform(0,0,2,pivot,m);
+    
+// DEFORM EACH PACKED TO THE NEXT PACKED P AND TRANSFORM
+    matrix3 m, m1, m2;
+    vector p1,p2,p0,p3;
+    float mix;
+    mix = ch("mix");
+    p1 = @P;
+    m1 = primintrinsic(0,"transform",@primnum);
+    
+    // if it's the last point then mix to the first point
+    if( @ptnum == npoints(0)-1 ){
+            p2 = p1;
+            m2 = m1;
+            // uncomment the 2 lines below if you want it to loop around back to the first point.
+            //p2 = point(0,"P",0);                    // first point
+            // m2 = primintrinsic(0,"transform",0);    // first prim transform
+        }else{
+            p2 = point(0,"P",@ptnum+1);
+            m2 = primintrinsic(0,"transform",@primnum+1);
+        };
+    
+    @P = lerp(p1,p2,mix);
+    m = m1 * (1-mix) + m2 * (mix) ;
+    setprimintrinsic(0,"transform",@ptnum,m,"set");
+    
+    
+    
+// TRANSFORM MANY PACKED PRIMS FROM ONE MATRIX INTO AN INFINITE NEGATIVE OR POSITIVE RECURSION    
+    matrix3 m, m1, m2, mdiff;
+    vector p,p1,p2,pdiff,mdiff_s,m_s;
+    m1 = primintrinsic(0,"transform",@ptnum);   // input1 matrix
+    m2 = primintrinsic(1,"transform",0);        // input2 matrix
+    mdiff = invert(m1) * m2;                    // the difference between the two matrixes
+    p1 = @P;
+    p2 = point(1,"P",0);
+    pdiff = p2-p1;                              // difference between first two primitives
+    m = m1;
+    mdiff_s = cracktransform(0,0,2,0,mdiff);    // extract the scale difference
+    pdiff = pdiff / mdiff_s;                           // divide the pdiff to get a base difference which we will reapply the scale iteratively
+    p = p1;
+    for (int i = 0; i<@ptnum; i++ ){            
+        m *= mdiff;                             //  reapply the matrix like an exponent.
+        m_s = cracktransform(0,0,2,0,m);        // steal the current scle 
+        p += pdiff * m_s;                       // apply the current scale to the base pdiff distance
+    };
+    if( 0 ){
+            @P = p;
+        }else{
+            m = invert(m);                            // invert the matrix so that it goes the other direction.
+            @P = p*m*-1;
+        };
+    setprimintrinsic(0,"transform",@ptnum,m,"set");

@@ -1,0 +1,144 @@
+// FILL GAPS
+    float searchrad=ch("searchrad");
+    float mindist=ch("mindist");
+    int maxpoints=ch("maxpoints");
+    int fillpoints=ch("fillpts");
+    vector clpos;
+    int handle=pcopen(@OpInput2,"P",@P,searchrad,maxpoints+1);
+    int i=0;
+    while(pciterate(handle)) {
+        if (i==0) {i++;continue;} // Skip self
+        pcimport(handle,"P",clpos);
+        if (length(@P-clpos)>mindist){
+        vector pointstep=(clpos-@P)/(fillpoints*2+1); // this ensures there are no duplicate point
+        for (int t=0;t<fillpoints;t++)
+            addpoint(geoself(),@P+(pointstep*float(t+1)));
+        }
+    }
+
+// SLIDE EACH POINT TO NEXT POINTS P
+    vector newP = 0;
+    if(@ptnum == npoints(0)-1 ){
+            newP = point(0,"P",0);
+        }else{
+            newP = point(0,"P",@ptnum+1);
+        };
+    @P = lerp(@P,newP,ch("blend"));
+    
+    
+    
+// VEX ray-tracer
+// - Input 1 | points you want to trace | requires @N
+// - Input 2 | geometry that you want to interact with | requires @N
+// + Max Iterations | How many bounces to perform
+// + Max Distance   | How far each bounce can travel looking for the next bounce 
+// + Ray Bias       | 0 ray refracts and follows the new normal | 1 ray travels straight through the surface
+
+    int prim = 0;
+    vector primP = @P, tempP;
+    vector primN = @N, tempN;
+    vector primUV = 0;
+    f@traveldist = 0;
+    i@hits = 0;
+    int i = 0;
+    int maxi = chi("max_iterations");
+    float maxdist = chf("max_dist");
+    float raybias = ch("ray_bias");
+    
+    while(prim != -1 && i < maxi){
+        tempP = primP;    
+        tempN = primN;    
+        primN *= maxdist; // so the ray travels far enough
+        prim = intersect(1,primP,primN,primP,primUV); // perform ray
+        primN = primuv(1,"N",prim,primUV); // new N   
+        if(dot(primN,tempN) < 0) primN *= -1; // always progress forward like a refraction not a reflection
+        primN = normalize(lerp(primN,tempN,raybias)); // ray bias | 0 means the ray refracts | 1 means the ray travels straight
+        primP += primN * .001; // slight offset otherwise it will endlessly intersect with previous surface
+        i++;
+        
+        // output
+        @traveldist += distance(tempP, primP);
+        @P = primP;
+        @N = primN;
+        @hits=i-1;
+        
+        };
+        
+    if(@hits<=1) removepoint(0,@ptnum); // remove points that never refract.
+
+    
+
+// CREATE A PHYLLOTAXIS SPIRAL
+
+    int count = chi("count");
+    float phi = (1 + sqrt(5))/2; // 1.611...
+    phi *= ch("spiral_amount")/360; // added this line for Manu's setup
+    float circ = 3.1415926535897932384 * 2; // 6.24...
+    float goldenratio = (2 - phi) * circ;
+    
+    vector polar_to_cartesian(float theta; float radius){
+        float x = cos(theta)*radius;
+        float z = sin(theta)*radius;
+        return set(x,0,z);
+    };
+    
+    for(int i=0; i<count; i++){
+        float progress = float(i)/float(count);
+        float radius = chf("radius") * pow(progress,chf("power")) ;
+        vector pos = polar_to_cartesian(goldenratio*i, radius); 
+        int newpt = addpoint(geoself(),pos);
+        addattrib(0,"point","dist",float(0));
+        setattrib(geoself(),"point","dist",newpt,0,progress,"set");
+    };
+    
+    // Some helpful defaults for the parms.
+    // Spiral Amount = 360
+    // Radius = 1
+    // Power = 1
+    // Count = 2000
+
+    
+    
+    
+// POINT REPLICATOR
+    for(int i=1; i < chi("count_multiplier") ; i++){ 
+        //// simple sample_normal distribution point replication
+        vector offsetP = sample_normal( clamp(rand(@ptnum*i),{.001,.001,.001},{.999,.999,.999}) ); // some variance
+        vector newP = @P + (offsetP * ch("offset_dist")); // new points position
+        vector newRest = @rest + (offsetP * ch("offset_dist")); // new points rest position
+        
+        //// consistant point triangulation
+        if( chi("method") ){    
+             int samplepts[] = pcfind(0,"rest",newRest,chf("search_radius"),chi("max_search_points"));
+             for(int ii=len(samplepts); ii > chi("sample_points"); ii-- ){
+                 //fill the array with a set number of consistant points
+                 int pickapt = int( rand(ii+@ptnum) * len(samplepts));
+                 removeindex(samplepts, pickapt);
+                 };
+             i@test = len(samplepts);
+             i[]@testing = samplepts;
+             vector averageP = 0;
+             //newP = 0;
+             foreach(int samplept; samplepts){
+                // iterate through each sampleP to create the averageP
+                vector sampleP = point(0,"P",samplept);
+                averageP += sampleP / len(samplepts);
+                };
+             //newP = averageP;   
+             newP = vector(slerp(averageP,newP, ch("sample_normal_bias") ));
+                
+             foreach(int samplept; samplepts){
+                // iterate through each sampleP to create the averageP
+                vector sampleP = point(0,"P",samplept);
+                newP = vector(slerp(newP,sampleP, fit11(fit01(ch("average_samples_bias"),-1,1)*rand(@ptnum+i+samplept+12),0,1) ));
+                };
+             };
+        // output stuff    
+        v@Cd = {0,1,0};
+        int newpt = addpoint(0,newP); // create the new point
+        setattrib(0,"point","rest" , newpt, 0, newRest, "set");
+        setattrib(0,"point","Cd"   , newpt, 0, {1,0,0}, "set");
+        };
+    
+    
+    

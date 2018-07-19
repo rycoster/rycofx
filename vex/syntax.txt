@@ -1,0 +1,29 @@
+// DECLARING VARIABLES AND CREATING ATTRIBUTES
+    int         i@
+    float       f@     // or just @
+    vector      v@
+    matrix2     2@
+    matrix3     3@
+    matrix      4@     // matrix defaults to matrix4
+    // arrays
+    int test[] = {0,1,2,3,4,5}
+    i[]@test = {0,1,2,3,4,5}
+
+    
+// CALLING VARIABLES FROM OTHER INPUTS
+    vector otherP = point(1,"P", @ptnum);
+    vector otherP = v@opinput1_P; // will match point number
+
+// CREATING QUICK GROUPS
+    i@group_things = 1;
+    
+// FOR 
+    for (int i = 0; i<10; i++ ){
+        // do something
+    };
+
+// FOR EACH
+    TODO
+    
+// WHILE 
+    TODO
